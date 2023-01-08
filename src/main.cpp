@@ -4,13 +4,39 @@
 #include "HueGroup.h"
 #include <WiFi.h>
 #include <WiFiMulti.h>
-#include <Bounce2.h>
+#include <OneButton.h>
 
 #define USE_SERIAL Serial
 
 HueClient conn(HUE_IP, HUE_API_USERNAME);
 HueGroup group(conn, HUE_GROUP);
-Button b = Button();
+OneButton b = OneButton(PIN_BUTTON, false, false);
+
+static void blink() {
+    digitalWrite(PIN_LED, HIGH);
+    delay(100);
+    digitalWrite(PIN_LED, LOW);
+    delay(100);
+    digitalWrite(PIN_LED, HIGH);
+    delay(100);
+    digitalWrite(PIN_LED, LOW);
+    delay(100);
+    digitalWrite(PIN_LED, HIGH);
+    delay(100);
+    digitalWrite(PIN_LED, LOW);
+}
+
+static void handleSingleClick() {
+    group.toggle();
+    USE_SERIAL.println("single click");
+    blink();
+}
+
+static void handleDoubleClick() {
+    group.scrollBrightnessTick();
+    USE_SERIAL.println("double click");
+    blink();
+}
 
 void setup()
 {
@@ -29,21 +55,13 @@ void setup()
         USE_SERIAL.println("Unable to connect");
     }
 
-    b.attach(PIN_BUTTON, INPUT);
-    b.interval(100);
-    b.setPressedState(HIGH);
     pinMode(PIN_LED, OUTPUT);
+    b.attachClick(handleSingleClick);
+    b.attachDoubleClick(handleDoubleClick);
 }
 
 void loop()
 {
-    b.update();
-
-    if(b.pressed()) {
-        group.toggle();
-        USE_SERIAL.println("toggled");
-        digitalWrite(PIN_LED, HIGH);
-        delay(5000);
-        digitalWrite(PIN_LED, LOW);
-    }
+    b.tick();
+    delay(10);
 }
